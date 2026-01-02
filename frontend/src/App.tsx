@@ -1,5 +1,5 @@
 // src/App.tsx
-import {useEffect, useRef, useState} from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 type MessageRole = 'USER' | 'AI';
 type MessageStatus = 'ok' | 'pending' | 'failed';
@@ -12,9 +12,23 @@ interface Message {
   createdAt: number;
 }
 
+// backend health check
+async function checkBackendHealth(): Promise<string> {
+  const response = await fetch('http://localhost:8080/api/health', {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Health check failed: ${response.status}`);
+  }
+
+  const data = await response.text();
+  return data;
+}
+
 // backend
 async function sendMessageToBackend(sessionId: string, content: string): Promise<{ reply: string }> {
-  const response = await fetch(`/api/devtalk/sessions/${sessionId}/messages`, {
+  const response = await fetch(`http://localhost:8080/api/devtalk/sessions/${sessionId}/messages`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -26,7 +40,8 @@ async function sendMessageToBackend(sessionId: string, content: string): Promise
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
 
-  return await response.json();
+  const data = await response.json();
+  return data;
 }
 
 function App() {
@@ -35,6 +50,7 @@ function App() {
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [healthStatus, setHealthStatus] = useState<'checking' | 'ok' | 'failed'>('checking');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -43,6 +59,25 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // health check
+  useEffect(() => {
+    checkHealth();
+  }, []);
+
+  const checkHealth = async () => {
+    setHealthStatus('checking');
+    try {
+      const result = await checkBackendHealth();
+      if (result === 'ok') {
+        setHealthStatus('ok');
+      } else {
+        setHealthStatus('failed');
+      }
+    } catch (err) {
+      setHealthStatus('failed');
+    }
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isSending) return;
@@ -106,8 +141,18 @@ function App() {
   return (
       <div className="app">
         <header className="header">
-          <h1>채팅 테스트 UI</h1>
-          <span className="session-id">Session: {sessionId}</span>
+          <div>
+            <h1>채팅 테스트 UI</h1>
+            <span className="session-id">Session: {sessionId}</span>
+          </div>
+          <div className="health-check">
+          <span className={`health-status health-${healthStatus}`}>
+            {healthStatus === 'checking' && '⏳ 확인 중...'}
+            {healthStatus === 'ok' && '✅ 서버 연결됨'}
+            {healthStatus === 'failed' && '❌ 서버 연결 실패'}
+          </span>
+            <button onClick={checkHealth} className="health-button">재확인</button>
+          </div>
         </header>
 
         {error && (

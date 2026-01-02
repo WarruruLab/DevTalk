@@ -40,6 +40,42 @@ body {
   font-family: monospace;
 }
 
+.health-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.health-status {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.health-ok {
+  color: #0a0;
+}
+
+.health-failed {
+  color: #c00;
+}
+
+.health-checking {
+  color: #666;
+}
+
+.health-button {
+  padding: 5px 10px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.health-button:hover {
+  background: #f5f5f5;
+}
+
 .error-banner {
   padding: 10px 20px;
   background: #fee;
