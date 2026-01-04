@@ -12,7 +12,48 @@ interface Message {
   createdAt: number;
 }
 
-// backend health check
+interface Session {
+  sessionId: string;
+  status: string;
+  createdAt: string;
+}
+
+async function createSession(): Promise<Session> {
+  const response = await fetch('http://localhost:8080/api/devtalk/sessions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Session creation failed: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+async function sendMessageToBackend(sessionId: string, content: string): Promise<any> {
+  const response = await fetch(`http://localhost:8080/api/devtalk/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      id: Date.now().toString(),
+      role: 'USER',
+      content: content,
+      status: 'OK'
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
 async function checkBackendHealth(): Promise<string> {
   const response = await fetch('http://localhost:8080/api/health', {
     method: 'GET',
@@ -22,65 +63,54 @@ async function checkBackendHealth(): Promise<string> {
     throw new Error(`Health check failed: ${response.status}`);
   }
 
-  const data = await response.text();
-  return data;
-}
-
-// backend
-async function sendMessageToBackend(sessionId: string, content: string): Promise<{ reply: string }> {
-  const response = await fetch(`http://localhost:8080/api/devtalk/sessions/${sessionId}/messages`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ message: content }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data;
+  return await response.text();
 }
 
 function App() {
-  const [sessionId] = useState(() => Math.random().toString(36).substring(7));
+  const [sessionId, setSessionId] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [healthStatus, setHealthStatus] = useState<'checking' | 'ok' | 'failed'>('checking');
+  const [sessionStatus, setSessionStatus] = useState<'creating' | 'ok' | 'failed'>('creating');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // 자동 스크롤
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // health check
   useEffect(() => {
     checkHealth();
+    initSession();
   }, []);
 
   const checkHealth = async () => {
     setHealthStatus('checking');
     try {
       const result = await checkBackendHealth();
-      if (result === 'ok') {
-        setHealthStatus('ok');
-      } else {
-        setHealthStatus('failed');
-      }
+      setHealthStatus(result === 'ok' ? 'ok' : 'failed');
     } catch (err) {
       setHealthStatus('failed');
     }
   };
 
+  const initSession = async () => {
+    setSessionStatus('creating');
+    try {
+      const session = await createSession();
+      setSessionId(session.sessionId);
+      setSessionStatus('ok');
+    } catch (err) {
+      setSessionStatus('failed');
+      setError('세션 생성 실패: ' + (err as Error).message);
+    }
+  };
+
   const sendMessage = async () => {
-    if (!input.trim() || isSending) return;
+    if (!input.trim() || isSending || !sessionId) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -90,40 +120,33 @@ function App() {
       createdAt: Date.now(),
     };
 
-    const aiPlaceholder: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'AI',
-      content: 'AI typing...',
-      status: 'pending',
-      createdAt: Date.now() + 1,
-    };
-
-    setMessages(prev => [...prev, userMessage, aiPlaceholder]);
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsSending(true);
     setError(null);
 
     try {
-      // backend
       const response = await sendMessageToBackend(sessionId, userMessage.content);
 
-      // placeholder 교체
-      setMessages(prev =>
-          prev.map(msg =>
-              msg.id === aiPlaceholder.id
-                  ? { ...msg, content: response.reply, status: 'ok' as MessageStatus }
-                  : msg
-          )
-      );
+      if (response.role === 'AI') {
+        const aiMessage: Message = {
+          id: response.id || (Date.now() + 1).toString(),
+          role: 'AI',
+          content: response.content,
+          status: response.status === 'FAILED' ? 'failed' : 'ok',
+          createdAt: Date.now(),
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      }
     } catch (err) {
-      // placeholder를 실패 메시지로 교체
-      setMessages(prev =>
-          prev.map(msg =>
-              msg.id === aiPlaceholder.id
-                  ? { ...msg, content: '(실패) 다시 시도하세요', status: 'failed' as MessageStatus }
-                  : msg
-          )
-      );
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'AI',
+        content: '(실패) 다시 시도하세요',
+        status: 'failed',
+        createdAt: Date.now(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
       setError((err as Error).message);
     } finally {
       setIsSending(false);
@@ -143,7 +166,9 @@ function App() {
         <header className="header">
           <div>
             <h1>채팅 테스트 UI</h1>
-            <span className="session-id">Session: {sessionId}</span>
+            <span className="session-id">
+            Session: {sessionStatus === 'creating' ? '생성 중...' : sessionStatus === 'failed' ? '생성 실패' : sessionId}
+          </span>
           </div>
           <div className="health-check">
           <span className={`health-status health-${healthStatus}`}>
@@ -183,9 +208,12 @@ function App() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="메시지 입력 (Enter: 전송, Shift+Enter: 줄바꿈)"
-            disabled={isSending}
+            disabled={isSending || sessionStatus !== 'ok'}
         />
-          <button onClick={sendMessage} disabled={!input.trim() || isSending}>
+          <button
+              onClick={sendMessage}
+              disabled={!input.trim() || isSending || sessionStatus !== 'ok'}
+          >
             {isSending ? '전송 중...' : '전송'}
           </button>
         </div>
