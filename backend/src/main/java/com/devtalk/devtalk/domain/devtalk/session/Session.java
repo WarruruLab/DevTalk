@@ -3,12 +3,12 @@ package com.devtalk.devtalk.domain.devtalk.session;
 import java.time.LocalDateTime;
 
 public class Session {
-    private String id;
+    private String sessionId;
     private SessionStatus status;
     private final LocalDateTime createdAt;
     // 생성시에 createdAt 설정 및 id는 UUID 사용
-    public Session(String id){
-        this.id = id;
+    public Session(String sessionId){
+        this.sessionId = sessionId;
         this.status = SessionStatus.OPEN;
         this.createdAt = LocalDateTime.now();
     }
@@ -17,8 +17,8 @@ public class Session {
         this.status = SessionStatus.RESOLVED;
     }
     // 필드에 대한 getter
-    public String getId() {
-        return id;
+    public String getSessionId() {
+        return sessionId;
     }
 
     public SessionStatus getStatus() {
