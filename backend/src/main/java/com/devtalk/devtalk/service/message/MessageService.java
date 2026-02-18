@@ -1,5 +1,6 @@
 package com.devtalk.devtalk.service.message;
 
+import com.devtalk.devtalk.api.dto.request.InternalBatchMessageRequest;
 import com.devtalk.devtalk.api.dto.request.SendMessageRequest;
 import com.devtalk.devtalk.api.dto.response.InternalMessagePageResponse;
 import com.devtalk.devtalk.api.dto.response.InternalMessageResponse;
@@ -11,6 +12,7 @@ import com.devtalk.devtalk.domain.session.SessionRepository;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.Collections;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -65,6 +67,17 @@ public class MessageService {
             .toList();
 
         return new InternalMessagePageResponse(responseList, nextCursor, hasMore);
+    }
+
+    public List<InternalMessageResponse> getMessagesByIds(InternalBatchMessageRequest request){
+        if (request.messageIds() == null || request.messageIds().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return messageRepository.findAllBySessionAndIds(request.sessionId(), request.messageIds())
+            .stream()
+            .map(InternalMessageResponse::from)
+            .toList();
     }
 
     private Session verifySession(String sessionId){
