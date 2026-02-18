@@ -8,6 +8,7 @@ import com.devtalk.devtalk.domain.message.MessageRepository;
 import com.devtalk.devtalk.domain.message.MessageRole;
 import com.devtalk.devtalk.domain.message.MessageStatus;
 import com.devtalk.devtalk.domain.session.Session;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -55,6 +56,12 @@ public class JdbcMessageRepository implements MessageRepository {
     public void deleteAllBySessionId(String sessionId){
         String sql = "DELETE FROM message WHERE session_id = ?";
         jdbcTemplate.update(sql, sessionId);
+    }
+
+    @Override
+    public List<Message> findAllBySessionAfterCursor(String sessionId, LocalDateTime cursor, int limit){
+        String sql = "SELECT * FROM message WHERE session_id = ? AND created_at > ? ORDER BY created_at ASC LIMIT ?";
+        return jdbcTemplate.query(sql,messageRowMapper, sessionId, cursor, limit);
     }
 
     private final RowMapper<Message> messageRowMapper = (rs, rowNum) -> {
