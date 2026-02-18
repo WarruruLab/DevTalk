@@ -8,5 +8,5 @@ public interface MessageRepository {
     List<Message> findAllBySessionId(String sessionId);
     void deleteAllBySessionId(String sessionId);
     List<Message> findAllBySessionAfterCursor(String sessionId, LocalDateTime cursor, int limit);
-
+    List<Message> findAllBySessionAndIds(String sessionId, List<String> messageIds);
 }

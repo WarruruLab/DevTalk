@@ -11,17 +11,21 @@ import com.devtalk.devtalk.domain.session.Session;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class JdbcMessageRepository implements MessageRepository {
 
     private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public JdbcMessageRepository(JdbcTemplate jdbcTemplate){
+    public JdbcMessageRepository(JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedParameterJdbcTemplate){
         this.jdbcTemplate = jdbcTemplate;
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
     @Override
@@ -62,6 +66,19 @@ public class JdbcMessageRepository implements MessageRepository {
     public List<Message> findAllBySessionAfterCursor(String sessionId, LocalDateTime cursor, int limit){
         String sql = "SELECT * FROM message WHERE session_id = ? AND created_at > ? ORDER BY created_at ASC LIMIT ?";
         return jdbcTemplate.query(sql,messageRowMapper, sessionId, cursor, limit);
+    }
+
+    @Override
+    public List<Message> findAllBySessionAndIds(String sessionId, List<String> messageIds){
+        String sql = "SELECT * FROM message " + "WHERE session_id = :sessionId AND id IN (:ids) " + "ORDER BY created_at ASC";
+
+        Map<String, Object> params = Map.of(
+            "sessionId", sessionId,
+            "ids", messageIds
+        );
+
+        // 3. NamedParameterJdbcTemplate으로 실행합니다.
+        return namedParameterJdbcTemplate.query(sql, params, messageRowMapper);
     }
 
     private final RowMapper<Message> messageRowMapper = (rs, rowNum) -> {
