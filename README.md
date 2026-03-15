@@ -33,7 +33,7 @@ DevLog ──── REST ────▶ Gemini API
             저장된 블록으로 블로그 초안 생성
 ```
 
-연관 레포: [MCP Server](#) · [DevLog](#)
+연관 레포: [MCP Server](https://github.com/WarruruLab/MCP) · [DevLog](https://github.com/WarruruLab/DevLog)
 
 ---
 
