@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE } from './apiBase';
 
 interface SessionSummary {
   sessionId: string;
@@ -14,8 +15,6 @@ interface SessionListProps {
   onSelectSession: (sessionId: string) => void;
   refreshTrigger?: number;
 }
-
-const API_BASE = 'http://localhost:8080/api/devtalk';
 
 function SessionList({ onSelectSession, refreshTrigger }: SessionListProps) {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);

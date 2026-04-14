@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { API_BASE } from './apiBase';
 
 /* ================= Type Definitions ================= */
 type MessageRole = 'USER' | 'AI' | 'SYSTEM';
@@ -40,8 +41,6 @@ interface ChatViewProps {
 }
 
 /* ================= Constants & Utils ================= */
-const API_BASE = 'http://localhost:8080/api/devtalk';
-
 const markdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
     const match = /language-(\w+)/.exec(className || '');

@@ -1,6 +1,7 @@
 package com.devtalk.devtalk.config;
 
 import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
@@ -13,12 +14,15 @@ import reactor.netty.http.client.HttpClient;
 public class StreamConfig {
 
     @Bean
-    public WebClient geminiWebClient() {
+    public WebClient geminiWebClient(
+        @Value("${llm.gemini.base-url:https://generativelanguage.googleapis.com}") String baseUrl,
+        @Value("${llm.gemini.stream-response-timeout-ms:60000}") long streamResponseTimeoutMs
+    ) {
         HttpClient httpClient = HttpClient.create()
-            .responseTimeout(Duration.ofSeconds(60)); // read-timeout 성격
+            .responseTimeout(Duration.ofMillis(streamResponseTimeoutMs));
 
         return WebClient.builder()
-            .baseUrl("https://generativelanguage.googleapis.com")
+            .baseUrl(baseUrl)
             .clientConnector(new ReactorClientHttpConnector(httpClient))
             .build();
     }
@@ -33,5 +37,4 @@ public class StreamConfig {
         ex.initialize();
         return ex;
     }
-
 }

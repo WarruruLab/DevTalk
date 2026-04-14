@@ -34,7 +34,7 @@ public class LlmConfig {
         RestClient geminiRestClient,
         @Value("${llm.mode:mock}") String mode,
         @Value("${llm.gemini.api-key:}") String apiKey,
-        @Value("${llm.gemini.model:}") String model,
+        @Value("${llm.gemini.model:gemini-2.5-flash}") String model,
         @Value("${llm.mock.always-fail:false}") boolean mockAlwaysFail
     ) {
         if ("gemini".equalsIgnoreCase(mode)) {
@@ -42,13 +42,14 @@ public class LlmConfig {
         }
         return new MockLlmClient(mockAlwaysFail);
     }
+
     @Bean
     public LlmStreamClient llmStreamClient(
         WebClient geminiWebClient,
         ObjectMapper objectMapper,
-        @Value("${LLM_GEMINI_API_KEY}") String apiKey,
-        @Value("${LLM_GEMINI_MODEL}") String model
+        @Value("${llm.gemini.api-key:}") String apiKey,
+        @Value("${llm.gemini.model:gemini-2.5-flash}") String model
     ) {
-        return new GeminiStreamClient(geminiWebClient, objectMapper ,apiKey, model);
+        return new GeminiStreamClient(geminiWebClient, objectMapper, apiKey, model);
     }
 }
