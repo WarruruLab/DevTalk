@@ -22,6 +22,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    networks:
+      - warruru-shared
 
   devtalk-backend:
     build:
@@ -56,6 +58,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    networks:
+      - warruru-shared
 
   devtalk-frontend:
     build:
@@ -76,7 +80,13 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - warruru-shared
 
 volumes:
   devtalk_db_data:
 
+networks:
+  warruru-shared:
+    name: warruru-shared
+    external: true
