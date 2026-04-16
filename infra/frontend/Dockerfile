@@ -7,7 +7,7 @@ RUN npm ci
 
 COPY frontend/ .
 
-ARG VITE_API_BASE_URL=/api/devtalk
+ARG VITE_API_BASE_URL=/devtalk/api/devtalk
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
 RUN npm run build
@@ -18,4 +18,3 @@ COPY infra/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
-

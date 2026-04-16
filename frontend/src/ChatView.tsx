@@ -283,7 +283,7 @@ function ChatView({ sessionId, onBack, onSelectSession }: ChatViewProps) {
       setStreamingAiContent('');
       setTypingQueue([]);
 
-      const streamUrl = `${API_BASE}/sessions/${sessionId}/ai/stream?replyToUserMessageId=${userMsg.messageId}`;
+      const streamUrl = `${API_BASE}/sessions/${sessionId}/ai/stream?replyTo=${userMsg.messageId}`;
       const eventSource = new EventSource(streamUrl);
       eventSourceRef.current = eventSource;
 
