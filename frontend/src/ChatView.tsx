@@ -86,7 +86,7 @@ function ChatView({ sessionId, onBack, onSelectSession }: ChatViewProps) {
   const [typingQueue, setTypingQueue] = useState<string[]>([]);
 
   /* ================= Refs ================= */
-  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const lastScrollTop = useRef<number>(0);

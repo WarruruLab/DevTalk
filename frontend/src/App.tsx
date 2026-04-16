@@ -29,6 +29,7 @@ function App() {
             <ChatView
                 sessionId={selectedSessionId}
                 onBack={handleBackToList}
+                onSelectSession={handleSelectSession}
             />
         )}
       </div>
