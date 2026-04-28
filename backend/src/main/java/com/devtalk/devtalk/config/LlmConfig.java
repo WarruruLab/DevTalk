@@ -1,55 +1,70 @@
 package com.devtalk.devtalk.config;
 
+import com.devtalk.devtalk.domain.llm.LlmClient;
+import com.devtalk.devtalk.domain.llm.LlmStreamClient;
 import com.devtalk.devtalk.infra.llm.GeminiHttpClient;
 import com.devtalk.devtalk.infra.llm.GeminiStreamClient;
 import com.devtalk.devtalk.infra.llm.MockLlmClient;
-import com.devtalk.devtalk.domain.llm.LlmClient;
-import com.devtalk.devtalk.domain.llm.LlmStreamClient;
+import com.devtalk.devtalk.infra.llm.MockLlmStreamClient;
 import java.time.Duration;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 import tools.jackson.databind.ObjectMapper;
 
 @Configuration
+@EnableConfigurationProperties(LlmProperties.class)
 public class LlmConfig {
 
     @Bean
-    public RestClient geminiRestClient(
-        @Value("${llm.gemini.base-url:https://generativelanguage.googleapis.com}") String baseUrl,
-        @Value("${llm.gemini.connect-timeout-ms:3000}") long connectTimeoutMs,
-        @Value("${llm.gemini.read-timeout-ms:15000}") long readTimeoutMs
-    ) {
+    public RestClient geminiRestClient(LlmProperties properties) {
+        LlmProperties.Gemini gemini = properties.resolvedGemini();
         return GeminiHttpClient.buildRestClient(
-            baseUrl,
-            Duration.ofMillis(connectTimeoutMs),
-            Duration.ofMillis(readTimeoutMs)
+            gemini.baseUrl(),
+            Duration.ofMillis(gemini.connectTimeoutMs()),
+            Duration.ofMillis(gemini.readTimeoutMs())
         );
     }
 
     @Bean
     public LlmClient llmClient(
         RestClient geminiRestClient,
-        @Value("${llm.mode:mock}") String mode,
-        @Value("${llm.gemini.api-key:}") String apiKey,
-        @Value("${llm.gemini.model:gemini-2.5-flash}") String model,
-        @Value("${llm.mock.always-fail:false}") boolean mockAlwaysFail
+        LlmProperties properties
     ) {
-        if ("gemini".equalsIgnoreCase(mode)) {
-            return new GeminiHttpClient(geminiRestClient, apiKey, model);
-        }
-        return new MockLlmClient(mockAlwaysFail);
+        LlmProperties.Gemini gemini = properties.resolvedGemini();
+        return switch (properties.resolvedMode().toLowerCase()) {
+            case "gemini" -> new GeminiHttpClient(geminiRestClient, gemini.apiKey(), gemini.model());
+            case "mock" -> new MockLlmClient(properties.resolvedMock().alwaysFail());
+            case "ollama" -> throw new IllegalStateException("LLM_MODE=ollama is not implemented yet");
+            default -> throw new IllegalArgumentException("Unsupported LLM mode: " + properties.resolvedMode());
+        };
     }
 
     @Bean
     public LlmStreamClient llmStreamClient(
-        WebClient geminiWebClient,
         ObjectMapper objectMapper,
-        @Value("${llm.gemini.api-key:}") String apiKey,
-        @Value("${llm.gemini.model:gemini-2.5-flash}") String model
+        LlmProperties properties
     ) {
-        return new GeminiStreamClient(geminiWebClient, objectMapper, apiKey, model);
+        LlmProperties.Gemini gemini = properties.resolvedGemini();
+        return switch (properties.resolvedMode().toLowerCase()) {
+            case "gemini" -> new GeminiStreamClient(geminiWebClient(gemini), objectMapper, gemini.apiKey(), gemini.model());
+            case "mock" -> new MockLlmStreamClient(properties.resolvedMock().alwaysFail());
+            case "ollama" -> throw new IllegalStateException("LLM_MODE=ollama is not implemented yet");
+            default -> throw new IllegalArgumentException("Unsupported LLM mode: " + properties.resolvedMode());
+        };
+    }
+
+    private WebClient geminiWebClient(LlmProperties.Gemini gemini) {
+        HttpClient httpClient = HttpClient.create()
+            .responseTimeout(Duration.ofMillis(gemini.streamResponseTimeoutMs()));
+
+        return WebClient.builder()
+            .baseUrl(gemini.baseUrl())
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .build();
     }
 }

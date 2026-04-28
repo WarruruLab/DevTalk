@@ -17,14 +17,20 @@ spring:
 llm:
   mode: ${LLM_MODE:mock}
   mock:
-    always-fail: false
+    always-fail: ${LLM_MOCK_ALWAYS_FAIL:false}
   gemini:
     base-url: ${LLM_GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+    api-key: ${LLM_GEMINI_API_KEY:}
+    model: ${LLM_GEMINI_MODEL:gemini-2.5-flash}
     connect-timeout-ms: ${LLM_GEMINI_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${LLM_GEMINI_READ_TIMEOUT_MS:15000}
     stream-response-timeout-ms: ${LLM_GEMINI_STREAM_RESPONSE_TIMEOUT_MS:60000}
-    api-key: ${LLM_GEMINI_API_KEY:}
-    model: ${LLM_GEMINI_MODEL:gemini-2.5-flash}
+  ollama:
+    base-url: ${LLM_OLLAMA_BASE_URL:http://ollama:11434}
+    model: ${LLM_OLLAMA_MODEL:qwen2.5:3b}
+    connect-timeout-ms: ${LLM_OLLAMA_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${LLM_OLLAMA_READ_TIMEOUT_MS:60000}
+    stream-response-timeout-ms: ${LLM_OLLAMA_STREAM_RESPONSE_TIMEOUT_MS:120000}
 
 devtalk:
   prompt:
