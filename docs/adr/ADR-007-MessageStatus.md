@@ -1,4 +1,4 @@
-# ADR-008: MessageStatus는 전달 성공 여부가 아닌 생성 결과를 의미한다
+# ADR-007: MessageStatus는 전달 성공 여부가 아닌 생성 결과를 의미한다
 
 ## 상태
 

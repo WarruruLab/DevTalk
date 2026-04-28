@@ -1,4 +1,4 @@
-# ADR-013: InMemoryStore를 제거 Repository/Service로 변경
+# ADR-011: InMemoryStore를 제거 Repository/Service로 변경
 
 ## 상태
 Accepted

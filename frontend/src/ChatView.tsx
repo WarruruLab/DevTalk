@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { API_BASE } from './apiBase';
 
 /* ================= Type Definitions ================= */
 type MessageRole = 'USER' | 'AI' | 'SYSTEM';
@@ -40,8 +41,6 @@ interface ChatViewProps {
 }
 
 /* ================= Constants & Utils ================= */
-const API_BASE = 'http://localhost:8080/api/devtalk';
-
 const markdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
     const match = /language-(\w+)/.exec(className || '');
@@ -87,7 +86,7 @@ function ChatView({ sessionId, onBack, onSelectSession }: ChatViewProps) {
   const [typingQueue, setTypingQueue] = useState<string[]>([]);
 
   /* ================= Refs ================= */
-  const typingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const lastScrollTop = useRef<number>(0);
@@ -284,7 +283,7 @@ function ChatView({ sessionId, onBack, onSelectSession }: ChatViewProps) {
       setStreamingAiContent('');
       setTypingQueue([]);
 
-      const streamUrl = `${API_BASE}/sessions/${sessionId}/ai/stream?replyToUserMessageId=${userMsg.messageId}`;
+      const streamUrl = `${API_BASE}/sessions/${sessionId}/ai/stream?replyTo=${userMsg.messageId}`;
       const eventSource = new EventSource(streamUrl);
       eventSourceRef.current = eventSource;
 

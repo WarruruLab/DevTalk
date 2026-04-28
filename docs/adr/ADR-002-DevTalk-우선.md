@@ -1,4 +1,4 @@
-# ADR-003: 개발톡(DevTalk) 우선 개발 전략
+# ADR-002: 개발톡(DevTalk) 우선 개발 전략
 
 ## 상태
 Accepted

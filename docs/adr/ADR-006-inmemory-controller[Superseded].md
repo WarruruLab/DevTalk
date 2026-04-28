@@ -1,4 +1,4 @@
-# ADR-007: Controller에서 in-memory 저장소를 임시로 사용
+# ADR-006: Controller에서 in-memory 저장소를 임시로 사용
 
 ## 상태
 

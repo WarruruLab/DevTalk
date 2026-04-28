@@ -1,4 +1,4 @@
-# ADR-014-Resolved토글및상태변경이력기록결정
+# ADR-012-Resolved토글및상태변경이력기록결정
 
 ## 상태
 Accepted

@@ -1,31 +1,30 @@
+server:
+  port: ${SERVER_PORT:8080}
+
 spring:
   application:
     name: devtalk
+  sql:
+    init:
+      mode: ${SPRING_SQL_INIT_MODE:always}
+      encoding: UTF-8
   datasource:
-    # 환경변수가 없으면 기본값(로컬 설정) 사용
     url: ${MYSQL_URL:jdbc:mysql://localhost:3306/devtalk?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
     username: ${MYSQL_USERNAME:devtalk_user}
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-    # 서버 시작 시 schema.sql 자동 실행 (개발 단계: always)
-  sql:
-    init:
-      mode: always
-      encoding: UTF-8
-
 llm:
-  mode: gemini
-
+  mode: ${LLM_MODE:mock}
   mock:
     always-fail: false
-
   gemini:
-    base-url: https://generativelanguage.googleapis.com
-    connect-timeout-ms: 3000
-    read-timeout-ms: 15000
-
-    # api-key / model은 환경변수로만 관리
+    base-url: ${LLM_GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+    connect-timeout-ms: ${LLM_GEMINI_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${LLM_GEMINI_READ_TIMEOUT_MS:15000}
+    stream-response-timeout-ms: ${LLM_GEMINI_STREAM_RESPONSE_TIMEOUT_MS:60000}
+    api-key: ${LLM_GEMINI_API_KEY:}
+    model: ${LLM_GEMINI_MODEL:gemini-2.5-flash}
 
 devtalk:
   prompt:
