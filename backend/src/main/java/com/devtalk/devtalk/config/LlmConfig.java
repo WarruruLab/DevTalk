@@ -6,8 +6,11 @@ import com.devtalk.devtalk.infra.llm.GeminiHttpClient;
 import com.devtalk.devtalk.infra.llm.GeminiStreamClient;
 import com.devtalk.devtalk.infra.llm.MockLlmClient;
 import com.devtalk.devtalk.infra.llm.MockLlmStreamClient;
+import com.devtalk.devtalk.infra.llm.OllamaHttpClient;
+import com.devtalk.devtalk.infra.llm.OllamaStreamClient;
 import java.time.Duration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -31,15 +34,27 @@ public class LlmConfig {
     }
 
     @Bean
+    public RestClient ollamaRestClient(LlmProperties properties) {
+        LlmProperties.Ollama ollama = properties.resolvedOllama();
+        return OllamaHttpClient.buildRestClient(
+            ollama.baseUrl(),
+            Duration.ofMillis(ollama.connectTimeoutMs()),
+            Duration.ofMillis(ollama.readTimeoutMs())
+        );
+    }
+
+    @Bean
     public LlmClient llmClient(
-        RestClient geminiRestClient,
+        @Qualifier("geminiRestClient") RestClient geminiRestClient,
+        @Qualifier("ollamaRestClient") RestClient ollamaRestClient,
         LlmProperties properties
     ) {
         LlmProperties.Gemini gemini = properties.resolvedGemini();
+        LlmProperties.Ollama ollama = properties.resolvedOllama();
         return switch (properties.resolvedMode().toLowerCase()) {
             case "gemini" -> new GeminiHttpClient(geminiRestClient, gemini.apiKey(), gemini.model());
             case "mock" -> new MockLlmClient(properties.resolvedMock().alwaysFail());
-            case "ollama" -> throw new IllegalStateException("LLM_MODE=ollama is not implemented yet");
+            case "ollama" -> new OllamaHttpClient(ollamaRestClient, ollama.model());
             default -> throw new IllegalArgumentException("Unsupported LLM mode: " + properties.resolvedMode());
         };
     }
@@ -50,10 +65,11 @@ public class LlmConfig {
         LlmProperties properties
     ) {
         LlmProperties.Gemini gemini = properties.resolvedGemini();
+        LlmProperties.Ollama ollama = properties.resolvedOllama();
         return switch (properties.resolvedMode().toLowerCase()) {
             case "gemini" -> new GeminiStreamClient(geminiWebClient(gemini), objectMapper, gemini.apiKey(), gemini.model());
             case "mock" -> new MockLlmStreamClient(properties.resolvedMock().alwaysFail());
-            case "ollama" -> throw new IllegalStateException("LLM_MODE=ollama is not implemented yet");
+            case "ollama" -> new OllamaStreamClient(ollamaWebClient(ollama), objectMapper, ollama.model());
             default -> throw new IllegalArgumentException("Unsupported LLM mode: " + properties.resolvedMode());
         };
     }
@@ -64,6 +80,16 @@ public class LlmConfig {
 
         return WebClient.builder()
             .baseUrl(gemini.baseUrl())
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
+            .build();
+    }
+
+    private WebClient ollamaWebClient(LlmProperties.Ollama ollama) {
+        HttpClient httpClient = HttpClient.create()
+            .responseTimeout(Duration.ofMillis(ollama.streamResponseTimeoutMs()));
+
+        return WebClient.builder()
+            .baseUrl(ollama.baseUrl())
             .clientConnector(new ReactorClientHttpConnector(httpClient))
             .build();
     }
