@@ -12,8 +12,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AiContextConfig {
     @Bean
-    public TailSelectorPolicy tailSelectorPolicy() {
-        return TailSelectorPolicy.defaultPolicy();
+    public TailSelectorPolicy tailSelectorPolicy(LlmProperties properties) {
+        LlmProperties.Tail tail = properties.resolvedContext().resolvedTail();
+        return new TailSelectorPolicy(tail.maxMessages(), tail.maxChars());
     }
 
     @Bean
@@ -22,8 +23,13 @@ public class AiContextConfig {
     }
 
     @Bean
-    public SummaryPolicy summaryPolicy() {
-        return SummaryPolicy.defaults();
+    public SummaryPolicy summaryPolicy(LlmProperties properties) {
+        LlmProperties.Summary summary = properties.resolvedContext().resolvedSummary();
+        return new SummaryPolicy(
+            summary.promptMaxChars(),
+            summary.hardMaxChars(),
+            summary.keepTailMessages()
+        );
     }
 
 //    @Bean

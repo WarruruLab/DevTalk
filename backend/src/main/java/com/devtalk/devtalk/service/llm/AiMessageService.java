@@ -1,6 +1,8 @@
 package com.devtalk.devtalk.service.llm;
 
 import com.devtalk.devtalk.api.dto.response.MessageResponse;
+import com.devtalk.devtalk.config.LlmOptionsFactory;
+import com.devtalk.devtalk.config.LlmProperties;
 import com.devtalk.devtalk.domain.message.Message;
 import com.devtalk.devtalk.domain.message.MessageMarkers;
 import com.devtalk.devtalk.domain.message.MessageMetadata;
@@ -34,6 +36,8 @@ public final class AiMessageService {
     private final SessionSummaryStore sessionSummaryStore;
     private final SessionSummaryService sessionSummaryService;
     private final LlmPromptComposer promptComposer;
+    private final LlmOptionsFactory llmOptionsFactory;
+    private final int maxContinueRounds;
 
     private static final String CONTINUE_PROMPT = """
         출력 길이 제한으로 이전 답변이 중간에 끊겼습니다.
@@ -50,16 +54,15 @@ public final class AiMessageService {
         위 규칙을 어기면 응답은 잘못된 것으로 간주됩니다.
     """;
 
-
-    private static final int MAX_CONTINUE_ROUNDS = 2;
-
-    public AiMessageService(MessageRepository messageRepository, LlmClient llmClient, TailSelector tailSelector, SessionSummaryService sessionSummaryService, SessionSummaryStore sessionSummaryStore, LlmPromptComposer promptComposer) {
+    public AiMessageService(MessageRepository messageRepository, LlmClient llmClient, TailSelector tailSelector, SessionSummaryService sessionSummaryService, SessionSummaryStore sessionSummaryStore, LlmPromptComposer promptComposer, LlmOptionsFactory llmOptionsFactory, LlmProperties llmProperties) {
         this.messageRepository = Objects.requireNonNull(messageRepository);
         this.llmClient = Objects.requireNonNull(llmClient);
         this.tailSelector = tailSelector;
         this.sessionSummaryService = sessionSummaryService;
         this.sessionSummaryStore = sessionSummaryStore;
         this.promptComposer = promptComposer;
+        this.llmOptionsFactory = Objects.requireNonNull(llmOptionsFactory);
+        this.maxContinueRounds = llmProperties.resolvedContext().resolvedContinue().maxRounds();
     }
 
     public MessageResponse generateAndSave(String sessionId) {
@@ -108,7 +111,7 @@ public final class AiMessageService {
         String systemPrompt = baseSystemPrompt + "\n" + composed.systemPrompt();
         List<LlmMessage> baseContext = composed.messages();
 
-        LlmOptions options = LlmOptions.defaults();
+        LlmOptions options = llmOptionsFactory.defaults();
 
         // 8) LLM 호출 (자동 이어쓰기 포함)
         StringBuilder total = new StringBuilder();
@@ -117,7 +120,7 @@ public final class AiMessageService {
         int totalOutputToken = 0;
         long startTime = System.currentTimeMillis();
 
-        int maxRounds = 1 + MAX_CONTINUE_ROUNDS;
+        int maxRounds = 1 + maxContinueRounds;
         for (int round = 1; round <= maxRounds; round++) {
             List<LlmMessage> ctx = (round == 1)
                 ? baseContext

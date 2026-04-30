@@ -49,6 +49,7 @@ lerna-debug.log*
 ############################################
 HELP.md
 .gradle/
+.gradle-home/
 build/
 bin/
 

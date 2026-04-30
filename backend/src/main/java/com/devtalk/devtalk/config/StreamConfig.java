@@ -9,11 +9,12 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 public class StreamConfig {
 
     @Bean
-    public TaskExecutor taskExecutor() {
+    public TaskExecutor taskExecutor(LlmProperties properties) {
+        LlmProperties.Executor executor = properties.resolvedStream().resolvedExecutor();
         ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
-        ex.setCorePoolSize(4);
-        ex.setMaxPoolSize(8);
-        ex.setQueueCapacity(100);
+        ex.setCorePoolSize(executor.corePoolSize());
+        ex.setMaxPoolSize(executor.maxPoolSize());
+        ex.setQueueCapacity(executor.queueCapacity());
         ex.setThreadNamePrefix("ai-stream-");
         ex.initialize();
         return ex;

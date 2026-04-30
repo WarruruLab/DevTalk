@@ -16,6 +16,26 @@ spring:
 
 llm:
   mode: ${LLM_MODE:mock}
+  default:
+    temperature: ${LLM_DEFAULT_TEMPERATURE:0.2}
+    max-tokens: ${LLM_DEFAULT_MAX_TOKENS:65536}
+  context:
+    tail:
+      max-messages: ${LLM_CONTEXT_TAIL_MAX_MESSAGES:12}
+      max-chars: ${LLM_CONTEXT_TAIL_MAX_CHARS:6000}
+    summary:
+      prompt-max-chars: ${LLM_CONTEXT_SUMMARY_PROMPT_MAX_CHARS:1000}
+      hard-max-chars: ${LLM_CONTEXT_SUMMARY_HARD_MAX_CHARS:1200}
+      keep-tail-messages: ${LLM_CONTEXT_SUMMARY_KEEP_TAIL_MESSAGES:12}
+    continue:
+      max-rounds: ${LLM_CONTINUE_MAX_ROUNDS:2}
+      anchor-chars: ${LLM_CONTINUE_ANCHOR_CHARS:200}
+  stream:
+    sse-emitter-timeout-ms: ${LLM_SSE_EMITTER_TIMEOUT_MS:180000}
+    executor:
+      core-pool-size: ${LLM_STREAM_EXECUTOR_CORE_POOL_SIZE:4}
+      max-pool-size: ${LLM_STREAM_EXECUTOR_MAX_POOL_SIZE:8}
+      queue-capacity: ${LLM_STREAM_EXECUTOR_QUEUE_CAPACITY:100}
   mock:
     always-fail: ${LLM_MOCK_ALWAYS_FAIL:false}
   gemini:

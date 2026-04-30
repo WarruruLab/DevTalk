@@ -26,16 +26,18 @@ public final class OllamaHttpClient implements LlmClient {
 
     private final RestClient restClient;
     private final String model;
+    private final LlmOptions defaultOptions;
 
-    public OllamaHttpClient(RestClient restClient, String model) {
+    public OllamaHttpClient(RestClient restClient, String model, LlmOptions defaultOptions) {
         this.restClient = Objects.requireNonNull(restClient, "restClient must not be null");
         this.model = Objects.requireNonNull(model, "model must not be null");
+        this.defaultOptions = Objects.requireNonNull(defaultOptions, "defaultOptions must not be null");
     }
 
     @Override
     public LlmResult generate(LlmRequest request) {
         try {
-            OllamaChatRequest payload = OllamaChatRequest.from(request, model, false);
+            OllamaChatRequest payload = OllamaChatRequest.from(request, model, false, defaultOptions);
 
             JsonNode response = restClient.post()
                 .uri("/api/chat")
@@ -140,7 +142,7 @@ public final class OllamaHttpClient implements LlmClient {
     ) {
         public record Message(String role, String content) {}
 
-        public static OllamaChatRequest from(LlmRequest request, String model, boolean stream) {
+        public static OllamaChatRequest from(LlmRequest request, String model, boolean stream, LlmOptions defaultOptions) {
             List<Message> messages = new ArrayList<>();
             if (request.systemPrompt() != null && !request.systemPrompt().isBlank()) {
                 messages.add(new Message("system", request.systemPrompt()));
@@ -150,7 +152,7 @@ public final class OllamaHttpClient implements LlmClient {
                 messages.add(new Message(mapRole(message.role()), message.content()));
             }
 
-            LlmOptions options = request.options() == null ? LlmOptions.defaults() : request.options();
+            LlmOptions options = request.options() == null ? defaultOptions : request.options();
             Map<String, Object> ollamaOptions = new LinkedHashMap<>();
             if (options.temperature() != null) ollamaOptions.put("temperature", options.temperature());
             if (options.maxTokens() != null) ollamaOptions.put("num_predict", options.maxTokens());

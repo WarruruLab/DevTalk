@@ -47,14 +47,15 @@ public class LlmConfig {
     public LlmClient llmClient(
         @Qualifier("geminiRestClient") RestClient geminiRestClient,
         @Qualifier("ollamaRestClient") RestClient ollamaRestClient,
-        LlmProperties properties
+        LlmProperties properties,
+        LlmOptionsFactory llmOptionsFactory
     ) {
         LlmProperties.Gemini gemini = properties.resolvedGemini();
         LlmProperties.Ollama ollama = properties.resolvedOllama();
         return switch (properties.resolvedMode().toLowerCase()) {
-            case "gemini" -> new GeminiHttpClient(geminiRestClient, gemini.apiKey(), gemini.model());
+            case "gemini" -> new GeminiHttpClient(geminiRestClient, gemini.apiKey(), gemini.model(), llmOptionsFactory.defaults());
             case "mock" -> new MockLlmClient(properties.resolvedMock().alwaysFail());
-            case "ollama" -> new OllamaHttpClient(ollamaRestClient, ollama.model());
+            case "ollama" -> new OllamaHttpClient(ollamaRestClient, ollama.model(), llmOptionsFactory.defaults());
             default -> throw new IllegalArgumentException("Unsupported LLM mode: " + properties.resolvedMode());
         };
     }
@@ -62,14 +63,15 @@ public class LlmConfig {
     @Bean
     public LlmStreamClient llmStreamClient(
         ObjectMapper objectMapper,
-        LlmProperties properties
+        LlmProperties properties,
+        LlmOptionsFactory llmOptionsFactory
     ) {
         LlmProperties.Gemini gemini = properties.resolvedGemini();
         LlmProperties.Ollama ollama = properties.resolvedOllama();
         return switch (properties.resolvedMode().toLowerCase()) {
-            case "gemini" -> new GeminiStreamClient(geminiWebClient(gemini), objectMapper, gemini.apiKey(), gemini.model());
+            case "gemini" -> new GeminiStreamClient(geminiWebClient(gemini), objectMapper, gemini.apiKey(), gemini.model(), llmOptionsFactory.defaults());
             case "mock" -> new MockLlmStreamClient(properties.resolvedMock().alwaysFail());
-            case "ollama" -> new OllamaStreamClient(ollamaWebClient(ollama), objectMapper, ollama.model());
+            case "ollama" -> new OllamaStreamClient(ollamaWebClient(ollama), objectMapper, ollama.model(), llmOptionsFactory.defaults());
             default -> throw new IllegalArgumentException("Unsupported LLM mode: " + properties.resolvedMode());
         };
     }

@@ -1,5 +1,6 @@
 package com.devtalk.devtalk.service.llm.context;
 
+import com.devtalk.devtalk.config.LlmOptionsFactory;
 import com.devtalk.devtalk.domain.llm.context.SessionSummaryStore;
 import com.devtalk.devtalk.domain.llm.context.SummaryPolicy;
 import com.devtalk.devtalk.domain.llm.context.SummaryState;
@@ -10,7 +11,6 @@ import com.devtalk.devtalk.domain.message.MessageRole;
 import com.devtalk.devtalk.domain.message.MessageStatus;
 import com.devtalk.devtalk.domain.llm.LlmClient;
 import com.devtalk.devtalk.domain.llm.LlmMessage;
-import com.devtalk.devtalk.domain.llm.LlmOptions;
 import com.devtalk.devtalk.domain.llm.LlmRequest;
 import com.devtalk.devtalk.domain.llm.LlmResult;
 import com.devtalk.devtalk.domain.llm.LlmRole;
@@ -26,12 +26,14 @@ public class SessionSummaryService {
     private final LlmClient llmClient;
     private final SessionSummaryStore summaryStore;
     private final SummaryPolicy policy;
+    private final LlmOptionsFactory llmOptionsFactory;
 
-    public SessionSummaryService(MessageRepository messageRepository, LlmClient llmClient, SessionSummaryStore summaryStore, SummaryPolicy policy) {
+    public SessionSummaryService(MessageRepository messageRepository, LlmClient llmClient, SessionSummaryStore summaryStore, SummaryPolicy policy, LlmOptionsFactory llmOptionsFactory) {
         this.messageRepository = Objects.requireNonNull(messageRepository);
         this.llmClient = Objects.requireNonNull(llmClient);
         this.summaryStore = Objects.requireNonNull(summaryStore);
         this.policy = Objects.requireNonNull(policy);
+        this.llmOptionsFactory = Objects.requireNonNull(llmOptionsFactory);
     }
 
     /**
@@ -118,7 +120,7 @@ public class SessionSummaryService {
             msgs.add(new LlmMessage(role, safe(m.getContent())));
         }
 
-        return new LlmRequest(systemPrompt, List.copyOf(msgs), LlmOptions.defaults());
+        return new LlmRequest(systemPrompt, List.copyOf(msgs), llmOptionsFactory.defaults());
     }
 
     private String compressOnce(String over, int hardMaxChars) {
@@ -134,7 +136,7 @@ public class SessionSummaryService {
         LlmRequest req = new LlmRequest(
             systemPrompt,
             List.of(new LlmMessage(LlmRole.USER, over)),
-            LlmOptions.defaults()
+            llmOptionsFactory.defaults()
         );
 
         LlmResult res = llmClient.generate(req);

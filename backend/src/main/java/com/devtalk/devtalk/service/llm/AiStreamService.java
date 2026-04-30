@@ -1,5 +1,7 @@
 package com.devtalk.devtalk.service.llm;
 
+import com.devtalk.devtalk.config.LlmOptionsFactory;
+import com.devtalk.devtalk.config.LlmProperties;
 import com.devtalk.devtalk.domain.llm.LlmTokenUsage;
 import com.devtalk.devtalk.domain.message.Message;
 import com.devtalk.devtalk.domain.message.MessageMarkers;
@@ -36,11 +38,11 @@ public class AiStreamService {
     private final SessionSummaryStore sessionSummaryStore;
     private final SessionSummaryService sessionSummaryService;
     private final LlmPromptComposer promptComposer;
+    private final LlmOptionsFactory llmOptionsFactory;
+    private final int maxContinue;
+    private final int anchorChars;
 
     private final TaskExecutor taskExecutor;
-
-    private static final int MAX_CONTINUE = 2;
-    private static final int ANCHOR_CHARS = 200;
 
     private static final String BASE_SYSTEM_PROMPT = """
         너는 DevTalk의 AI 응답자다.
@@ -49,7 +51,7 @@ public class AiStreamService {
         - 모르면 모른다고 말해라
         """;
 
-    public AiStreamService(MessageRepository messageRepository, LlmStreamClient llmStreamClient, TailSelector tailSelector, SessionSummaryService sessionSummaryService, SessionSummaryStore sessionSummaryStore, LlmPromptComposer promptComposer, TaskExecutor taskExecutor) {
+    public AiStreamService(MessageRepository messageRepository, LlmStreamClient llmStreamClient, TailSelector tailSelector, SessionSummaryService sessionSummaryService, SessionSummaryStore sessionSummaryStore, LlmPromptComposer promptComposer, TaskExecutor taskExecutor, LlmOptionsFactory llmOptionsFactory, LlmProperties llmProperties) {
         this.messageRepository = Objects.requireNonNull(messageRepository);
         this.llmStreamClient = Objects.requireNonNull(llmStreamClient);
         this.tailSelector = Objects.requireNonNull(tailSelector);
@@ -57,6 +59,10 @@ public class AiStreamService {
         this.sessionSummaryStore = Objects.requireNonNull(sessionSummaryStore);
         this.promptComposer = Objects.requireNonNull(promptComposer);
         this.taskExecutor = Objects.requireNonNull(taskExecutor);
+        this.llmOptionsFactory = Objects.requireNonNull(llmOptionsFactory);
+        LlmProperties.Continue continueConfig = Objects.requireNonNull(llmProperties).resolvedContext().resolvedContinue();
+        this.maxContinue = continueConfig.maxRounds();
+        this.anchorChars = continueConfig.anchorChars();
     }
 
     public void streamAi(String sessionId, String replyToUserMessageId, SseEmitter emitter) {
@@ -93,7 +99,7 @@ public class AiStreamService {
             LlmPromptComposer.ComposedPrompt composed = promptComposer.compose(summary, tail, latestUser);
             String systemPrompt = BASE_SYSTEM_PROMPT + "\n" + composed.systemPrompt();
             List<LlmMessage> baseContext = composed.messages();
-            LlmOptions options = LlmOptions.defaults();
+            LlmOptions options = llmOptionsFactory.defaults();
 
             // 5) start
             sendEvent(emitter, "start", "ok");
@@ -112,7 +118,7 @@ public class AiStreamService {
                 if (continueCount == 0) {
                     req = new LlmRequest(systemPrompt, baseContext, options);
                 } else {
-                    String anchor = lastN(total.toString(), ANCHOR_CHARS);
+                    String anchor = lastN(total.toString(), anchorChars);
 
                     LlmPromptComposer.ComposedPrompt cont = promptComposer.composeContinue(
                         summary,
@@ -135,7 +141,7 @@ public class AiStreamService {
 
                 if (clientGone.get()) break;
 
-                if (r == LlmFinishReason.MAX_TOKENS && continueCount < MAX_CONTINUE) {
+                if (r == LlmFinishReason.MAX_TOKENS && continueCount < maxContinue) {
                     continueCount++;
                     continue;
                 }

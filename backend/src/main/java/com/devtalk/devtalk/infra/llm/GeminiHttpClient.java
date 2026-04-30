@@ -30,11 +30,13 @@ public class GeminiHttpClient implements LlmClient {
     private final RestClient restClient;
     private final String apiKey;
     private final String model;
+    private final LlmOptions defaultOptions;
 
-    public GeminiHttpClient(RestClient restClient, String apiKey, String model) {
+    public GeminiHttpClient(RestClient restClient, String apiKey, String model, LlmOptions defaultOptions) {
         this.restClient = Objects.requireNonNull(restClient, "restClient must not be null");
         this.apiKey = Objects.requireNonNull(apiKey, "apiKey must not be null");
         this.model = Objects.requireNonNull(model, "model must not be null");
+        this.defaultOptions = Objects.requireNonNull(defaultOptions, "defaultOptions must not be null");
     }
     // 인터페이스의 함수를 오버라이딩 하여 적용
     // LlmRequest를 Gemini에 맞는 GeminiGenerateRequest로 변환
@@ -46,7 +48,7 @@ public class GeminiHttpClient implements LlmClient {
         // try catch를 통해 성공과 실패 모두 기록으로 남길 수 있도록 반환
         try {
             // LlmRequest를 Gemini에 맞게 변환
-            GeminiGenerateRequest payload = GeminiGenerateRequest.from(request);
+            GeminiGenerateRequest payload = GeminiGenerateRequest.from(request, defaultOptions);
             // post 요청으로 응답을 받음
             GeminiGenerateResponse response = restClient.post()
                 .uri(uriBuilder -> uriBuilder
@@ -130,7 +132,7 @@ public class GeminiHttpClient implements LlmClient {
         public record Part(String text) {}
         public record GenerationConfig(Double temperature, Integer maxOutputTokens) {}
 
-        public static GeminiGenerateRequest from(LlmRequest request) {
+        public static GeminiGenerateRequest from(LlmRequest request, LlmOptions defaultOptions) {
             Content systemInstruction = null;
             if (request.systemPrompt() != null && !request.systemPrompt().isBlank()) {
                 systemInstruction = new Content(null, List.of(new Part(request.systemPrompt())));
@@ -147,7 +149,7 @@ public class GeminiHttpClient implements LlmClient {
                 contents.add(new Content(role, List.of(new Part(m.content()))));
             }
 
-            LlmOptions opt = (request.options() != null) ? request.options() : LlmOptions.defaults();
+            LlmOptions opt = (request.options() != null) ? request.options() : defaultOptions;
 
             return new GeminiGenerateRequest(
                 systemInstruction,

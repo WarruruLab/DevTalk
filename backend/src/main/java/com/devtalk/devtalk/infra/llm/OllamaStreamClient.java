@@ -1,6 +1,7 @@
 package com.devtalk.devtalk.infra.llm;
 
 import com.devtalk.devtalk.domain.llm.LlmFinishReason;
+import com.devtalk.devtalk.domain.llm.LlmOptions;
 import com.devtalk.devtalk.domain.llm.LlmRequest;
 import com.devtalk.devtalk.domain.llm.LlmStreamClient;
 import com.devtalk.devtalk.domain.llm.LlmStreamEvent;
@@ -18,16 +19,18 @@ public final class OllamaStreamClient implements LlmStreamClient {
 
     private final WebClient webClient;
     private final String model;
+    private final LlmOptions defaultOptions;
 
-    public OllamaStreamClient(WebClient webClient, ObjectMapper objectMapper, String model) {
+    public OllamaStreamClient(WebClient webClient, ObjectMapper objectMapper, String model, LlmOptions defaultOptions) {
         this.webClient = Objects.requireNonNull(webClient, "webClient must not be null");
         Objects.requireNonNull(objectMapper, "objectMapper must not be null");
         this.model = Objects.requireNonNull(model, "model must not be null");
+        this.defaultOptions = Objects.requireNonNull(defaultOptions, "defaultOptions must not be null");
     }
 
     @Override
     public Flux<LlmStreamEvent> stream(LlmRequest request) {
-        OllamaHttpClient.OllamaChatRequest payload = OllamaHttpClient.OllamaChatRequest.from(request, model, true);
+        OllamaHttpClient.OllamaChatRequest payload = OllamaHttpClient.OllamaChatRequest.from(request, model, true, defaultOptions);
 
         return webClient.post()
             .uri("/api/chat")

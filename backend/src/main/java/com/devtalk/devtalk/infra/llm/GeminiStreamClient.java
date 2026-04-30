@@ -1,6 +1,7 @@
 package com.devtalk.devtalk.infra.llm;
 
 import com.devtalk.devtalk.domain.llm.LlmFinishReason;
+import com.devtalk.devtalk.domain.llm.LlmOptions;
 import com.devtalk.devtalk.domain.llm.LlmRequest;
 import com.devtalk.devtalk.domain.llm.LlmStreamClient;
 import com.devtalk.devtalk.domain.llm.LlmStreamEvent;
@@ -18,17 +19,19 @@ public final class GeminiStreamClient implements LlmStreamClient {
     private final ObjectMapper objectMapper;
     private final String apiKey;
     private final String model;
+    private final LlmOptions defaultOptions;
 
-    public GeminiStreamClient(WebClient webClient, ObjectMapper objectMapper, String apiKey, String model) {
+    public GeminiStreamClient(WebClient webClient, ObjectMapper objectMapper, String apiKey, String model, LlmOptions defaultOptions) {
         this.webClient = Objects.requireNonNull(webClient);
         this.objectMapper = Objects.requireNonNull(objectMapper);
         this.apiKey = Objects.requireNonNull(apiKey);
         this.model = Objects.requireNonNull(model);
+        this.defaultOptions = Objects.requireNonNull(defaultOptions);
     }
 
     @Override
     public Flux<LlmStreamEvent> stream(LlmRequest request) {
-        GeminiHttpClient.GeminiGenerateRequest payload = GeminiHttpClient.GeminiGenerateRequest.from(request);
+        GeminiHttpClient.GeminiGenerateRequest payload = GeminiHttpClient.GeminiGenerateRequest.from(request, defaultOptions);
 
         Flux<String> chunks = webClient.post()
             .uri(uriBuilder -> uriBuilder

@@ -1,7 +1,7 @@
 package com.devtalk.devtalk.api.controller.devtalk.llm;
 
+import com.devtalk.devtalk.config.LlmProperties;
 import com.devtalk.devtalk.service.llm.AiStreamService;
-import java.time.Duration;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,15 +14,16 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequestMapping(("/api/devtalk/sessions"))
 public class LlmStreamController {
     private final AiStreamService aiStreamService;
+    private final LlmProperties llmProperties;
 
-    public LlmStreamController (AiStreamService aiStreamService){
+    public LlmStreamController(AiStreamService aiStreamService, LlmProperties llmProperties) {
         this.aiStreamService = aiStreamService;
+        this.llmProperties = llmProperties;
     }
 
     @GetMapping(value = "/{sessionId}/ai/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(@PathVariable String sessionId, @RequestParam(required = false) String replyTo) {
-        // 3분 타임아웃(프론트가 끊기면 자동 종료됨)
-        SseEmitter emitter = new SseEmitter(Duration.ofMinutes(3).toMillis());
+        SseEmitter emitter = new SseEmitter(llmProperties.resolvedStream().sseEmitterTimeoutMs());
         aiStreamService.streamAi(sessionId, replyTo, emitter);
         return emitter;
     }
